@@ -19,11 +19,12 @@ screenGui.ResetOnSpawn = false
 
 -- Frame หลัก
 local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0,220,0,400)
+frame.Size = UDim2.new(0,220,0,450)
 frame.Position = UDim2.new(0.5, -110, 0.4, 0)
 frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 frame.Active = true
-frame.Draggable = true -- ลากได้
+frame.Draggable = true
+frame.Visible = true
 
 -- ฟังก์ชันสร้างปุ่ม
 local function createButton(name, pos, text)
@@ -122,6 +123,23 @@ serverBtn.MouseButton1Click:Connect(function()
 				teleportService:TeleportToPlaceInstance(gameId, s.id, player)
 				break
 			end
+		end
+	end)
+end)
+
+-- ปุ่ม Aimbot (โหลดโค้ดจาก GitHub)
+local aimbotBtn = createButton("AimbotBtn", UDim2.new(0,10,0,280), "Run Aimbot")
+aimbotBtn.MouseButton1Click:Connect(function()
+	aimbotBtn.Text = "Loading..."
+	spawn(function()
+		local success, err = pcall(function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/Kiananf/czwuyi/refs/heads/main/aim%20bot"))()
+		end)
+		if success then
+			aimbotBtn.Text = "Aimbot: ON"
+		else
+			aimbotBtn.Text = "Error"
+			warn(err)
 		end
 	end)
 end)
