@@ -26,6 +26,47 @@ do
         SubContent = "SubContent",
         Duration = 5
     })
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+local SelectedPlayer -- ต้องกำหนดจาก dropdown หรือชื่อผู้เล่น
+
+-- Teleport function
+local function TeleportToPlayer()
+    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    if SelectedPlayer and SelectedPlayer.Character and SelectedPlayer.Character:FindFirstChild("HumanoidRootPart") and Character:FindFirstChild("HumanoidRootPart") then
+        Character.HumanoidRootPart.CFrame = SelectedPlayer.Character.HumanoidRootPart.CFrame
+    end
+end
+
+-- Tween function (speed 250)
+local function TweenToPlayer()
+    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    if SelectedPlayer and SelectedPlayer.Character and SelectedPlayer.Character:FindFirstChild("HumanoidRootPart") and Character:FindFirstChild("HumanoidRootPart") then
+        local HRP = Character.HumanoidRootPart
+        local targetCFrame = SelectedPlayer.Character.HumanoidRootPart.CFrame
+        local tweenInfo = TweenInfo.new((HRP.Position - targetCFrame.Position).Magnitude / 250, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(HRP, tweenInfo, {CFrame = targetCFrame})
+        tween:Play()
+    end
+end
+local PlayerDropdown = Tabs.Settings:AddDropdown("PlayerDropdown", {
+    Title = "Select Player",
+    Description = "Choose a player",
+    Options = function()
+        local list = {}
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer then
+                table.insert(list, plr.Name)
+            end
+        end
+        return list
+    end,
+    Callback = function(Value)
+        SelectedPlayer = Players:FindFirstChild(Value)
+    end
+})
 
     local Keybind = Tabs.Settings:AddKeybind("Keybind", {
         Title = "KeyBind",
@@ -38,6 +79,17 @@ do
             print("Keybind changed!", New)
         end
     })
+Tabs.Settings:AddButton("TeleportButton", {
+    Title = "Teleport to Player",
+    Description = "Teleport to selected player",
+    Callback = TeleportToPlayer
+})
+
+Tabs.Settings:AddButton("TweenButton", {
+    Title = "Tween to Player",
+    Description = "Tween to selected player",
+    Callback = TweenToPlayer
+})
 
     Keybind:OnClick(function()
         print("Keybind clicked:", Keybind:GetState())
