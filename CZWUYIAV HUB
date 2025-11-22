@@ -7,7 +7,7 @@ local Window = Fluent:CreateWindow({
     Title = "CZWUYIAV HUB " .. Fluent.Version,
     SubTitle = "czwuy_AV",
     TabWidth = 160,
-    Size = UDim2.fromOffset(580, 460),
+    Size = UDim2.fromOffset(580, 580),
     Acrylic = true,
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.LeftControl
@@ -26,6 +26,7 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
+local UIS = game:GetService("UserInputService")
 
 -- ===== Character Helper =====
 local function GetCharacter(plr)
@@ -85,7 +86,15 @@ task.spawn(function()
                         myHRP.CFrame = targetHRP.CFrame * CFrame.new(0,0,-3)
                     else
                         local info = TweenInfo.new((myHRP.Position-targetHRP.Position).Magnitude/250, Enum.EasingStyle.Linear)
-                        TweenService:Create(myHRP, info, {CFrame=targetHRP.CFrame*CFrame.new(0,0,-3)}):Play()
+                        local tween = TweenService:Create(myHRP, info, {CFrame=targetHRP.CFrame*CFrame.new(0,0,-3)})
+                        tween:Play()
+                        -- Stop tween if toggle off
+                        task.spawn(function()
+                            while TP_Toggle.Value and tween.PlaybackState==Enum.PlaybackState.Playing do
+                                task.wait(0.1)
+                            end
+                            tween:Cancel()
+                        end)
                     end
                 end
             end
@@ -129,12 +138,19 @@ local function CreateBillboard(plr)
     if not head then return end
 
     local gui = Instance.new("BillboardGui")
-    gui.Name="PlayerInfoGUI"; gui.Size=UDim2.new(3,0,2,0); gui.StudsOffset=Vector3.new(0,3,0)
-    gui.Adornee=head; gui.AlwaysOnTop=true; gui.MaxDistance=999
-    local nameLabel = Instance.new("TextLabel"); nameLabel.Parent=gui; nameLabel.Size=UDim2.new(1,0,0.5,0)
-    nameLabel.BackgroundTransparency=1; nameLabel.TextSize=24; nameLabel.Font=Enum.Font.GothamBold; nameLabel.TextStrokeTransparency=0.5
-    local hpLabel = Instance.new("TextLabel"); hpLabel.Parent=gui; hpLabel.Position=UDim2.new(0,0,0.5,0)
-    hpLabel.Size=UDim2.new(1,0,0.5,0); hpLabel.BackgroundTransparency=1; hpLabel.TextSize=20; hpLabel.Font=Enum.Font.GothamBold; hpLabel.TextStrokeTransparency=0.5
+    gui.Name="PlayerInfoGUI"; gui.Size=UDim2.new(4,0,4,0); gui.StudsOffset=Vector3.new(0,3,0)
+    gui.Adornee=head; gui.AlwaysOnTop=true; gui.MaxDistance=9999
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Parent=gui; nameLabel.Size=UDim2.new(1,0,0.5,0)
+    nameLabel.BackgroundTransparency=1; nameLabel.TextSize=25
+    nameLabel.Font=Enum.Font.GothamBold; nameLabel.TextStrokeTransparency=0.5
+
+    local hpLabel = Instance.new("TextLabel")
+    hpLabel.Parent=gui; hpLabel.Position=UDim2.new(0,0,0.5,0)
+    hpLabel.Size=UDim2.new(1,0,0.5,0); hpLabel.BackgroundTransparency=1
+    hpLabel.TextSize=25; hpLabel.Font=Enum.Font.GothamBold; hpLabel.TextStrokeTransparency=0.5
+
     gui.Parent=plr.Character
 
     task.spawn(function()
@@ -150,9 +166,9 @@ local function CreateBillboard(plr)
     end)
 
     local highlight = Instance.new("Highlight")
-    highlight.FillColor=Color3.fromRGB(180,180,180)
+    highlight.FillColor=Color3.fromRGB(255,0,0)
     highlight.OutlineColor=Color3.fromRGB(255,255,255)
-    highlight.FillTransparency=0.6; highlight.OutlineTransparency=0
+    highlight.FillTransparency=0.7; highlight.OutlineTransparency=0
     highlight.Parent=plr.Character
 end
 
@@ -163,25 +179,130 @@ local function EnableEPS()
 end
 EPS_Toggle:OnChanged(function(val) if val then EnableEPS() end end)
 
--- ===== Ultra Potato / Boots FPS =====
+-- ===== Ultra Potato / Very Low Graphics =====
 local function UltraPotato()
     for _,v in ipairs(Lighting:GetChildren()) do if v:IsA("PostEffect") then v.Enabled=false end end
-    Lighting.GlobalShadows=false; Lighting.Brightness=1
-    Lighting.Ambient=Color3.new(0.8,0.8,0.8); Lighting.OutdoorAmbient=Color3.new(0.8,0.8,0.8)
+    Lighting.GlobalShadows=false; Lighting.Brightness=0.5
+    Lighting.Ambient=Color3.new(0.5,0.5,0.5); Lighting.OutdoorAmbient=Color3.new(0.5,0.5,0.5)
     Lighting.FogStart=0; Lighting.FogEnd=100000
     local Terrain=Workspace:FindFirstChildOfClass("Terrain")
     if Terrain then
         Terrain.WaterWaveSize=0; Terrain.WaterWaveSpeed=0; Terrain.WaterReflectance=0
-        Terrain.WaterTransparency=1; Terrain.WaterColor=Color3.new(0.3,0.3,0.3)
+        Terrain.WaterTransparency=1; Terrain.WaterColor=Color3.new(0.5,0.5,0.5)
     end
     for _,obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Explosion") then obj.Enabled=false end
-        if obj:IsA("BasePart") then obj.Material=Enum.Material.SmoothPlastic; obj.Reflectance=0; obj.CastShadow=false; obj.Color=Color3.fromRGB(150,150,150) end
-        if obj:IsA("MeshPart") then obj.Material=Enum.Material.SmoothPlastic; obj.TextureID=""; obj.Reflectance=0; obj.CastShadow=false; obj.Color=Color3.fromRGB(150,150,150) end
+        if obj:IsA("BasePart") then obj.Material=Enum.Material.SmoothPlastic; obj.Reflectance=0; obj.CastShadow=false; obj.Color=Color3.new(0.5,0.5,0.5) end
+        if obj:IsA("MeshPart") then obj.Material=Enum.Material.SmoothPlastic; obj.TextureID=""; obj.Reflectance=0; obj.CastShadow=false; obj.Color=Color3.new(0.5,0.5,0.5) end
     end
     settings().Rendering.QualityLevel=Enum.QualityLevel.Level01
 end
 Tabs.Main:AddButton({Title="Ultra Potato++",Callback=UltraPotato})
+
+-- ===== Auto Hit / No Stun =====
+local HitToggle = Tabs.Main:AddToggle("AutoHit_Toggle", {
+    Title = "Auto Hit Skill (Always Hit)",
+    Default = false
+})
+
+local HitModeDropdown = Tabs.Main:AddDropdown("Hit_Mode", {
+    Title = "Hit Mode",
+    Values = {"Auto", "Selected Player"},
+    Multi = false,
+    Default = "Auto"
+})
+
+local TargetHitDropdown = Tabs.Main:AddDropdown("Hit_Target", {
+    Title = "Target Player",
+    Values = (function()
+        local list = {}
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer then table.insert(list, plr.Name) end
+        end
+        return list
+    end)(),
+    Multi = false
+})
+
+-- Auto update player list
+task.spawn(function()
+    while true do
+        TargetHitDropdown:SetValues((function()
+            local list = {}
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer then table.insert(list, plr.Name) end
+            end
+            return list
+        end)())
+        task.wait(2)
+    end
+end)
+
+local SkillKeyDropdown = Tabs.Main:AddDropdown("Skill_Key", {
+    Title = "Skill Key",
+    Values = {"Z", "X", "C", "V", "F"},
+    Multi = false,
+    Default = "Z"
+})
+
+-- หาเป้าหมายใกล้ที่สุด
+local function GetClosestTarget(maxDist)
+    local myChar = LocalPlayer.Character
+    if not myChar then return nil end
+    local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return nil end
+    maxDist = maxDist or 80
+    local closest
+    local distMin = maxDist
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local d = (myHRP.Position - hrp.Position).Magnitude
+                if d < distMin then
+                    distMin = d
+                    closest = plr
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local function AutoHit()
+    local target
+    if HitModeDropdown.Value == "Auto" then
+        target = GetClosestTarget(80)
+    else
+        local name = TargetHitDropdown.Value
+        if name and name ~= "" then
+            target = Players:FindFirstChild(name)
+        end
+    end
+    if not target or not target.Character then return end
+
+    -- <<< แก้ชื่อ Remote ให้ตรงเกม >>>
+    local remote = game.ReplicatedStorage:FindFirstChild("SkillRemote")
+    if remote then
+        remote:FireServer(target)
+        Fluent:Notify({Title="Auto Hit", Content="Hit: "..target.Name, Duration=2})
+    end
+
+    -- ===== No Stun =====
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum:SetStateEnabled(Enum.HumanoidStateType.Stunned, false)
+    end
+end
+
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if not HitToggle.Value then return end
+    local key = SkillKeyDropdown.Value
+    if input.KeyCode == Enum.KeyCode[key] then
+        AutoHit()
+    end
+end)
 
 -- ===== Save / Interface =====
 SaveManager:IgnoreThemeSettings()
