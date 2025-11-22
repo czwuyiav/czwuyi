@@ -4,7 +4,7 @@ local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.
 
 local Window = Fluent:CreateWindow({
     Title = "CZWUYIAV HUB " .. Fluent.Version,
-    SubTitle = "by dawid",
+    SubTitle = "czwuy_AV",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = true,
@@ -14,7 +14,7 @@ local Window = Fluent:CreateWindow({
 
 local Tabs = {
     Main = Window:AddTab({ Title = "Main", Icon = "" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "" }) -- ต้องเพิ่ม
+    Settings = Window:AddTab({ Title = "Settings", Icon = "" })
 }
 
 local Options = Fluent.Options
@@ -27,15 +27,13 @@ do
         Duration = 5
     })
 
-    local Keybind = Tabs.Main:AddKeybind("Keybind", {
+    local Keybind = Tabs.Settings:AddKeybind("Keybind", {
         Title = "KeyBind",
         Mode = "Toggle",
         Default = "LeftControl",
-
         Callback = function(Value)
             print("Keybind clicked!", Value)
         end,
-
         ChangedCallback = function(New)
             print("Keybind changed!", New)
         end
@@ -59,24 +57,33 @@ do
         end
     end)
 
-    -- ตั้งค่าปุ่มกดใหม่
     Keybind:SetValue("MB2")
     Keybind:SetMode("Toggle")
+
+    Tabs.Settings:AddButton("CreditButton", {
+        Title = "Credit: dy czwuyi_AV",
+        Description = "Script creator",
+        Callback = function()
+            Fluent:Notify({
+                Title = "Credit",
+                Content = "Script by dy czwuyi_AV",
+                Duration = 5
+            })
+        end
+    })
 end
 
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({})
-
 InterfaceManager:SetFolder("FluentScriptHub")
 SaveManager:SetFolder("FluentScriptHub/specific-game")
-
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 
 Window:SelectTab(1)
 
 Fluent:Notify({
-    Title = "CZWUYIAV AV",
+    Title = "dy czwuyi_AV",
     Content = "The script has been loaded.",
     Duration = 8
 })
