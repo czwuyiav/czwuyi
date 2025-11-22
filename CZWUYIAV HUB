@@ -123,6 +123,120 @@ local SetSpeedBtn = Tabs.Main:AddButton({
     end
 })
 
+-- Jump Power Control
+local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
+
+local JumpBox = Tabs.Main:AddInput("JumpPower_Box", {
+    Title = "Jump Power",
+    Default = "50",
+    Placeholder = "Enter jump power",
+    Numeric = true,
+})
+
+local SetJumpBtn = Tabs.Main:AddButton({
+    Title = "Set Jump Power",
+    Callback = function()
+        local jp = tonumber(JumpBox.Value)
+        if jp then
+            humanoid.JumpPower = jp
+            Fluent:Notify({
+                Title = "Jump Updated",
+                Content = "JumpPower set to: " .. jp,
+                Duration = 3
+            })
+        else
+            Fluent:Notify({
+                Title = "Invalid Number",
+                Content = "Please enter a valid number.",
+                Duration = 3
+            })
+        end
+    end
+})
+
+local ResetJumpBtn = Tabs.Main:AddButton({
+    Title = "Reset Jump Power",
+    Callback = function()
+        humanoid.JumpPower = 50
+        Fluent:Notify({
+            Title = "Jump Reset",
+            Content = "JumpPower reset to default (50)",
+            Duration = 3
+        })
+    end
+})
+
+
+-- Very Very Low Graphics (Ultra Potato Mode)
+local Lighting = game:GetService("Lighting")
+local Terrain = workspace:FindFirstChildOfClass("Terrain")
+
+local function VeryLow()
+    -- Disable all post processing
+    for _, v in ipairs(Lighting:GetChildren()) do
+        if v:IsA("PostEffect") then
+            v.Enabled = false
+        end
+    end
+
+    -- Lighting settings
+    Lighting.GlobalShadows = false
+    Lighting.Brightness = 1
+    Lighting.Ambient = Color3.new(1,1,1)
+    Lighting.OutdoorAmbient = Color3.new(1,1,1)
+    Lighting.FogEnd = 1000000
+
+    -- Terrain Optimization
+    if Terrain then
+        Terrain.WaterWaveSize = 0
+        Terrain.WaterWaveSpeed = 0
+        Terrain.WaterReflectance = 0
+        Terrain.WaterTransparency = 1
+    end
+
+    -- Massive Optimization
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        -- Remove particles
+        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") then
+            obj.Enabled = false
+        end
+
+        -- Replace all parts with plastic
+        if obj:IsA("BasePart") then
+            obj.Material = Enum.Material.Plastic
+            obj.Reflectance = 0
+        end
+
+        -- Disable mesh parts visual (safe)
+        if obj:IsA("MeshPart") then
+            obj.Material = Enum.Material.Plastic  -- Force plastic look
+            obj.TextureID = ""                   -- Remove texture
+            obj.Reflectance = 0
+        end
+
+        -- Lower texture size
+        if obj:IsA("Decal") or obj:IsA("Texture") then
+            obj.Transparency = 0.5               -- Light fade
+        end
+    end
+
+    -- Rendering quality
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+end
+
+Tabs.Main:AddButton({
+    Title = "VERY VERY LOW Graphics",
+    Callback = function()
+        VeryLow()
+        Fluent:Notify({
+            Title = "Very Low Mode",
+            Content = "Graphics set to VERY VERY LOW (Ultra Potato Mode)",
+            Duration = 5
+        })
+    end
+})
+
 -- Keybind
 local Keybind = Tabs.Settings:AddKeybind("Keybind", {
     Title = "KeyBind",
