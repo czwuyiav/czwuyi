@@ -36,6 +36,64 @@ local function GetCharacter(plr)
     return nil
 end
 
+-- ===== Player Dropdown (ใช้ร่วม TP + Aimbot) =====
+local PlayerDropdown = Tabs.Main:AddDropdown("Player_Select", {
+    Title = "Select Player",
+    Values = {},
+    Multi = false
+})
+
+-- Auto Refresh Player List
+task.spawn(function()
+    while task.wait(2) do
+        local list = {}
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer then table.insert(list, plr.Name) end
+        end
+        PlayerDropdown:SetValues(list)
+    end
+end)
+
+-- ===== Teleport =====
+local TP_Toggle = Tabs.Main:AddToggle("Teleport_Toggle", {Title="Teleport", Default=false})
+local ModeDropdown = Tabs.Main:AddDropdown("Teleport_Mode", {Title="Teleport Mode", Values={"Instant","Tween"}, Multi=false, Default="Instant"})
+
+task.spawn(function()
+    while task.wait() do
+        if TP_Toggle.Value then
+            local target = Players:FindFirstChild(PlayerDropdown.Value)
+            local myHRP = GetCharacter(LocalPlayer)
+            local targetHRP = GetCharacter(target)
+            if myHRP and targetHRP then
+                if ModeDropdown.Value=="Instant" then
+                    myHRP.CFrame = targetHRP.CFrame * CFrame.new(0,0,-3)
+                else
+                    local info = TweenInfo.new((myHRP.Position-targetHRP.Position).Magnitude/250, Enum.EasingStyle.Linear)
+                    TweenService:Create(myHRP, info, {CFrame=targetHRP.CFrame*CFrame.new(0,0,-3)}):Play()
+                end
+            end
+        end
+    end
+end)
+
+-- ===== Aimbot =====
+local AimbotToggle = Tabs.Main:AddToggle("Aimbot_Toggle", {Title="Aimbot", Default=false})
+
+task.spawn(function()
+    while task.wait() do
+        if AimbotToggle.Value then
+            local target = Players:FindFirstChild(PlayerDropdown.Value)
+            local myHRP = GetCharacter(LocalPlayer)
+            local targetHRP = GetCharacter(target)
+            if myHRP and targetHRP then
+                local dir = (targetHRP.Position - myHRP.Position).Unit
+                myHRP.CFrame = CFrame.new(myHRP.Position, myHRP.Position + dir)
+            end
+        end
+    end
+end)
+
+-- ===== WalkSpeed / Jump =====
 local humanoid
 local function UpdateHumanoid()
     local char = LocalPlayer.Character
@@ -44,132 +102,112 @@ end
 LocalPlayer.CharacterAdded:Connect(function(char) char:WaitForChild("Humanoid"); UpdateHumanoid() end)
 UpdateHumanoid()
 
--- ===== Teleport GUI =====
-local PlayerDropdown = Tabs.Main:AddDropdown("TP_Players", {
-    Title = "Select Player",
-    Values = (function()
+local SpeedBox = Tabs.Main:AddInput("WalkSpeed_Box",{Title="Walk Speed",Default="16",Placeholder="Enter speed", Numeric=true})
+Tabs.Main:AddButton({Title="Set Speed",Callback=function()
+    if humanoid then
+        local val = tonumber(SpeedBox.Value)
+        if val then humanoid.WalkSpeed=val; Fluent:Notify({Title="Speed Updated",Content="WalkSpeed "..val,Duration=3}) end
+    end
+end})
+
+local JumpBox = Tabs.Main:AddInput("JumpPower_Box",{Title="Jump Power",Default="50",Placeholder="Enter jump", Numeric=true})
+Tabs.Main:AddButton({Title="Set Jump Power",Callback=function()
+    if humanoid then
+        local val = tonumber(JumpBox.Value)
+        if val then humanoid.JumpPower=val; Fluent:Notify({Title="Jump Updated",Content="JumpPower "..val,Duration=3}) end
+    end
+end})
+Tabs.Main:AddButton({Title="Reset Jump Power",Callback=function()
+    if humanoid then humanoid.JumpPower=50; Fluent:Notify({Title="Jump Reset",Content="JumpPower 50",Duration=3}) end
+end})
+
+-- ===== Rainbow ESP =====
+local EPS_Toggle = Tabs.Main:AddToggle("EPS_Toggle",{Title="Rainbow ESP",Default=false})
+local function CreateBillboard(plr)
+    if not plr.Character then return end
+    local head = plr.Character:FindFirstChild("Head")
+    if not head then return end
+
+    local gui = Instance.new("BillboardGui")
+    gui.Name="PlayerInfoGUI"; gui.Size=UDim2.new(4,0,4,0); gui.StudsOffset=Vector3.new(0,3,0)
+    gui.Adornee=head; gui.AlwaysOnTop=true; gui.MaxDistance=9999
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Parent=gui; nameLabel.Size=UDim2.new(1,0,0.5,0)
+    nameLabel.BackgroundTransparency=1; nameLabel.TextSize=25
+    nameLabel.Font=Enum.Font.GothamBold; nameLabel.TextStrokeTransparency=0.5
+
+    local hpLabel = Instance.new("TextLabel")
+    hpLabel.Parent=gui; hpLabel.Position=UDim2.new(0,0,0.5,0)
+    hpLabel.Size=UDim2.new(1,0,0.5,0); hpLabel.BackgroundTransparency=1
+    hpLabel.TextSize=25; hpLabel.Font=Enum.Font.GothamBold; hpLabel.TextStrokeTransparency=0.5
+
+    gui.Parent=plr.Character
+
+    task.spawn(function()
+        local hue=0
+        while gui.Parent do
+            hue=(hue+1)%360
+            local c=Color3.fromHSV(hue/360,1,1)
+            nameLabel.TextColor3=c; hpLabel.TextColor3=c
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hpLabel.Text="HP: "..math.floor(hum.Health) end
+            task.wait(0.1)
+        end
+    end)
+
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor=Color3.fromRGB(255,0,0)
+    highlight.OutlineColor=Color3.fromRGB(255,255,255)
+    highlight.FillTransparency=0.7; highlight.OutlineTransparency=0
+    highlight.Parent=plr.Character
+end
+
+EPS_Toggle:OnChanged(function(val)
+    if val then
+        for _,plr in ipairs(Players:GetPlayers()) do
+            if plr~=LocalPlayer and plr.Character then CreateBillboard(plr) end
+        end
+    end
+end)
+
+-- ===== Ultra Potato =====
+local function UltraPotato()
+    for _,v in ipairs(Lighting:GetChildren()) do if v:IsA("PostEffect") then v.Enabled=false end end
+    Lighting.GlobalShadows=false; Lighting.Brightness=0.5
+    Lighting.Ambient=Color3.new(0.5,0.5,0.5); Lighting.OutdoorAmbient=Color3.new(0.5,0.5,0.5)
+    Lighting.FogStart=0; Lighting.FogEnd=100000
+    local Terrain=Workspace:FindFirstChildOfClass("Terrain")
+    if Terrain then
+        Terrain.WaterWaveSize=0; Terrain.WaterWaveSpeed=0; Terrain.WaterReflectance=0
+        Terrain.WaterTransparency=1; Terrain.WaterColor=Color3.new(0.5,0.5,0.5)
+    end
+    for _,obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Explosion") then obj.Enabled=false end
+        if obj:IsA("BasePart") then obj.Material=Enum.Material.SmoothPlastic; obj.Reflectance=0; obj.CastShadow=false; obj.Color=Color3.new(0.5,0.5,0.5) end
+        if obj:IsA("MeshPart") then obj.Material=Enum.Material.SmoothPlastic; obj.TextureID=""; obj.Reflectance=0; obj.CastShadow=false; obj.Color=Color3.new(0.5,0.5,0.5) end
+    end
+    settings().Rendering.QualityLevel=Enum.QualityLevel.Level01
+end
+Tabs.Main:AddButton({Title="Ultra Potato++",Callback=UltraPotato})
+
+-- ===== Auto Hit / No Stun =====
+local HitToggle = Tabs.Main:AddToggle("AutoHit_Toggle", {Title = "Auto Hit Skill (Always Hit)", Default = false})
+local HitModeDropdown = Tabs.Main:AddDropdown("Hit_Mode", {Title = "Hit Mode", Values = {"Auto", "Selected Player"}, Multi=false, Default="Auto"})
+local TargetHitDropdown = Tabs.Main:AddDropdown("Hit_Target", {Title="Target Player", Values={}, Multi=false})
+
+-- Auto update target list
+task.spawn(function()
+    while task.wait(2) do
         local list = {}
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer then table.insert(list, plr.Name) end
         end
-        return list
-    end)(),
-    Multi = false
-})
-
-task.spawn(function()
-    while true do
-        PlayerDropdown:SetValues((function()
-            local list = {}
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr ~= LocalPlayer then table.insert(list, plr.Name) end
-            end
-            return list
-        end)())
-        task.wait(2)
+        TargetHitDropdown:SetValues(list)
     end
 end)
 
-local ModeDropdown = Tabs.Main:AddDropdown("TP_Mode", {
-    Title = "Teleport Mode",
-    Values = {"Instant","Tween"},
-    Multi = false,
-    Default = "Instant"
-})
-
-local TP_Toggle = Tabs.Main:AddToggle("TP_Toggle",{Title="Teleport", Default=false})
-TP_Toggle:OnChanged(function(value) TP_Toggle.Value = value end)
-
-task.spawn(function()
-    while true do
-        task.wait()
-        if TP_Toggle.Value then
-            local targetName = PlayerDropdown.Value
-            if targetName and targetName~="" then
-                local target = Players:FindFirstChild(targetName)
-                local myHRP = GetCharacter(LocalPlayer)
-                local targetHRP = GetCharacter(target)
-                if myHRP and targetHRP then
-                    if ModeDropdown.Value=="Instant" then
-                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(0,0,-3)
-                    else
-                        local info = TweenInfo.new((myHRP.Position-targetHRP.Position).Magnitude/250, Enum.EasingStyle.Linear)
-                        local tween = TweenService:Create(myHRP, info, {CFrame=targetHRP.CFrame*CFrame.new(0,0,-3)})
-                        tween:Play()
-                        task.spawn(function()
-                            while TP_Toggle.Value and tween.PlaybackState==Enum.PlaybackState.Playing do
-                                task.wait(0.1)
-                            end
-                            tween:Cancel()
-                        end)
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- ===== Aimbot Toggle =====
-local AimbotToggle = Tabs.Main:AddToggle("Aimbot_Toggle",{Title="Aimbot", Default=false})
-AimbotToggle:OnChanged(function(v) AimbotToggle.Value = v end)
-
-task.spawn(function()
-    while true do
-        task.wait()
-        if AimbotToggle.Value then
-            local targetName = PlayerDropdown.Value
-            if targetName and targetName ~= "" then
-                local target = Players:FindFirstChild(targetName)
-                local myHRP = GetCharacter(LocalPlayer)
-                local targetHRP = GetCharacter(target)
-                if myHRP and targetHRP then
-                    local dir = (targetHRP.Position - myHRP.Position).Unit
-                    myHRP.CFrame = CFrame.new(myHRP.Position, myHRP.Position + dir)
-                end
-            end
-        end
-    end
-end)
-
--- ===== No-Stun Toggle =====
-local NoStunToggle = Tabs.Main:AddToggle("NoStun_Toggle",{Title="No-Stun", Default=false})
-NoStunToggle:OnChanged(function(v) NoStunToggle.Value = v end)
-
-task.spawn(function()
-    while true do
-        task.wait(0.1)
-        if NoStunToggle.Value and humanoid then
-            humanoid:SetStateEnabled(Enum.HumanoidStateType.Stunned,false)
-        end
-    end
-end)
-
--- ===== Auto Hit Toggle =====
-local HitToggle = Tabs.Main:AddToggle("AutoHit_Toggle", {Title = "Auto Hit Skill", Default = false})
-local HitModeDropdown = Tabs.Main:AddDropdown("Hit_Mode",{Title="Hit Mode",Values={"Auto","Selected Player"},Multi=false,Default="Auto"})
-local TargetHitDropdown = Tabs.Main:AddDropdown("Hit_Target",{Title="Target Player",Values=(function()
-    local list = {}
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer then table.insert(list, plr.Name) end
-    end
-    return list
-end)(), Multi=false})
-
--- Auto update player list
-task.spawn(function()
-    while true do
-        TargetHitDropdown:SetValues((function()
-            local list = {}
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr ~= LocalPlayer then table.insert(list, plr.Name) end
-            end
-            return list
-        end)())
-        task.wait(2)
-    end
-end)
-
-local SkillKeyDropdown = Tabs.Main:AddDropdown("Skill_Key",{Title="Skill Key",Values={"Z","X","C","V","F"},Multi=false,Default="Z"})
+local SkillKeyDropdown = Tabs.Main:AddDropdown("Skill_Key", {Title="Skill Key", Values={"Z","X","C","V","F"}, Multi=false, Default="Z"})
 
 local function GetClosestTarget(maxDist)
     local myChar = LocalPlayer.Character
@@ -200,24 +238,26 @@ local function AutoHit()
         target = GetClosestTarget(80)
     else
         local name = TargetHitDropdown.Value
-        if name and name ~= "" then target = Players:FindFirstChild(name) end
+        if name and name ~= "" then
+            target = Players:FindFirstChild(name)
+        end
     end
     if not target or not target.Character then return end
 
     local remote = game.ReplicatedStorage:FindFirstChild("SkillRemote")
     if remote then
         remote:FireServer(target)
-        Fluent:Notify({Title="Auto Hit",Content="Hit "..target.Name,Duration=2})
     end
+
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if hum then hum:SetStateEnabled(Enum.HumanoidStateType.Stunned, false) end
 end
 
 UIS.InputBegan:Connect(function(input, gp)
     if gp then return end
     if not HitToggle.Value then return end
     local key = SkillKeyDropdown.Value
-    if input.KeyCode == Enum.KeyCode[key] then
-        AutoHit()
-    end
+    if input.KeyCode == Enum.KeyCode[key] then AutoHit() end
 end)
 
 -- ===== Save / Interface =====
