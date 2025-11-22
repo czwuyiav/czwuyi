@@ -13,6 +13,21 @@ local Window = Fluent:CreateWindow({
 })
 
 local Tabs = {
+    Main = Window:AddTab({ Title = "Main", Icon = "" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "" })
+}
+
+local Options = Fluent.Options
+
+do
+    Fluent:Notify({
+        Title = "Notification",
+        Content = "This is a notification",
+        SubContent = "SubContent",
+        Duration = 5
+    })
+
+Tabs.Main
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
@@ -34,12 +49,14 @@ local function GetPlayerList()
     return list
 end
 
+-- Dropdown รายชื่อผู้เล่น
 local PlayerDropdown = Tabs.Main:AddDropdown("TP_Players", {
     Title = "เลือกผู้เล่น",
     Values = GetPlayerList(),
     Multi = false,
 })
 
+-- Dropdown โหมดวาป
 local ModeDropdown = Tabs.Main:AddDropdown("TP_Mode", {
     Title = "โหมดวาป",
     Values = {"Instant", "Tween"},
@@ -47,16 +64,18 @@ local ModeDropdown = Tabs.Main:AddDropdown("TP_Mode", {
     Default = "Instant"
 })
 
-local Toggle = Tabs.Main:AddToggle("TP_Toggle", {Title = "กดค้างวาป", Default = false})
+-- Toggle ปุ่มเปิด-ปิดวาป
+local TP_Toggle = Tabs.Main:AddToggle("TP_Toggle", {Title = "กดค้างวาป", Default = false})
 
-Toggle:OnChanged(function(Value)
-    Toggle.Value = Value
+TP_Toggle:OnChanged(function(Value)
+    TP_Toggle.Value = Value
 end)
 
+-- Loop ตรวจสอบว่ากดค้างหรือไม่
 task.spawn(function()
     while true do
         task.wait()
-        if Toggle.Value then
+        if TP_Toggle.Value then
             local targetName = PlayerDropdown.Value
             if targetName and targetName ~= "" then
                 local target = Players:FindFirstChild(targetName)
@@ -75,19 +94,6 @@ task.spawn(function()
         if Fluent.Unloaded then break end
     end
 end)
-    Main = Window:AddTab({ Title = "Main", Icon = "" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "" })
-}
-
-local Options = Fluent.Options
-
-do
-    Fluent:Notify({
-        Title = "Notification",
-        Content = "This is a notification",
-        SubContent = "SubContent",
-        Duration = 5
-    })
 
     local Keybind = Tabs.Settings:AddKeybind("Keybind", {
         Title = "KeyBind",
@@ -119,7 +125,7 @@ do
         end
     end)
 
-    Keybind:SetValue("MB2")
+    Keybind:SetValue("F1")
     Keybind:SetMode("Toggle")
 
     Tabs.Settings:AddButton("CreditButton", {
@@ -147,5 +153,4 @@ Window:SelectTab(1)
 Fluent:Notify({
     Title = "CZWUYIAV AV",
     Content = "The script has been loaded.",
-    Duration = 8
-})
+    Duration = 8MB2
