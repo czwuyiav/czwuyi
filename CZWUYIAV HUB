@@ -90,6 +90,39 @@ task.spawn(function()
     end
 end)
 
+-- WalkSpeed Control
+local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
+
+local SpeedBox = Tabs.Main:AddInput("WalkSpeed_Box", {
+    Title = "Walk Speed",
+    Default = "16",
+    Placeholder = "Enter speed (e.g. 500)",
+    Numeric = true,
+})
+
+local SetSpeedBtn = Tabs.Main:AddButton({
+    Title = "Set Speed",
+    Callback = function()
+        local speedValue = tonumber(SpeedBox.Value)
+
+        if speedValue then
+            humanoid.WalkSpeed = speedValue
+            Fluent:Notify({
+                Title = "Speed Updated",
+                Content = "WalkSpeed set to: " .. speedValue,
+                Duration = 3
+            })
+        else
+            Fluent:Notify({
+                Title = "Invalid Number",
+                Content = "Please enter a valid speed.",
+                Duration = 3
+            })
+        end
+    end
+})
+
 -- Keybind
 local Keybind = Tabs.Settings:AddKeybind("Keybind", {
     Title = "KeyBind",
