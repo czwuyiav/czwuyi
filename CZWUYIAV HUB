@@ -1,4 +1,4 @@
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+Options Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
@@ -167,12 +167,143 @@ local ResetJumpBtn = Tabs.Main:AddButton({
     end
 })
 
+-- SAFE Rainbow EPS FULL COMBO
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local EPS_Toggle = Tabs.Main:AddToggle("EPS_Toggle", {
+    Title = "Rainbow EPS",
+    Default = false
+})
+
+-- Rainbow Highlight
+local function CreateRainbowHighlight(character)
+    local h = Instance.new("Highlight")
+    h.FillColor = Color3.fromRGB(255,0,0)
+    h.OutlineColor = Color3.fromRGB(255,0,0)
+    h.FillTransparency = 0.7
+    h.OutlineTransparency = 0
+    h.Parent = character
+
+    task.spawn(function()
+        local hue = 0
+        while h.Parent do
+            hue = (hue + 1) % 360
+            local c = Color3.fromHSV(hue/360,1,1)
+            h.FillColor = c
+            h.OutlineColor = c
+            task.wait(0.03)
+        end
+    end)
+
+    return h
+end
+
+-- Billboard GUI with Rainbow Name + HP
+local function CreateBillboard(plr)
+    if not plr.Character then return end
+    local head = plr.Character:FindFirstChild("Head")
+    if not head then return end
+
+    local gui = Instance.new("BillboardGui")
+    gui.Name = "PlayerInfoGUI"
+    gui.Size = UDim2.new(4,0,1,0)
+    gui.Adornee = head
+    gui.AlwaysOnTop = true
+    gui.MaxDistance = 99999
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Parent = gui
+    nameLabel.Size = UDim2.new(1,0,0.5,0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextSize = 20
+    nameLabel.Font = Enum.Font.GothamBold -- สไตล์ iPhone / Fluent
+    nameLabel.TextStrokeTransparency = 0.5
+
+    local hpLabel = Instance.new("TextLabel")
+    hpLabel.Parent = gui
+    hpLabel.Position = UDim2.new(0,0,0.5,0)
+    hpLabel.Size = UDim2.new(1,0,0.5,0)
+    hpLabel.BackgroundTransparency = 1
+    hpLabel.TextSize = 18
+    hpLabel.Font = Enum.Font.GothamBold
+    hpLabel.TextStrokeTransparency = 0.5
+
+    gui.Parent = plr.Character
+
+    -- Rainbow effect for name + HP
+    task.spawn(function()
+        local hue = 0
+        while gui.Parent do
+            hue = (hue + 1) % 360
+            local c = Color3.fromHSV(hue/360,1,1)
+            nameLabel.TextColor3 = c
+            hpLabel.TextColor3 = c
+            task.wait(0.03)
+        end
+    end)
+
+    return gui, hpLabel
+end
+
+-- Enable EPS
+local function EnableEPS()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            if plr.Character then
+                local gui, hpLabel = CreateBillboard(plr)
+                local h = CreateRainbowHighlight(plr.Character)
+
+                task.spawn(function()
+                    while EPS_Toggle.Value and plr.Character and hpLabel do
+                        local hum = plr.Character:FindFirstChild("Humanoid")
+                        if hum then
+                            hpLabel.Text = "HP: " .. math.floor(hum.Health)
+                        end
+                        task.wait(0.1)
+                    end
+                    if gui then gui:Destroy() end
+                    if h then h:Destroy() end
+                end)
+            end
+        end
+    end
+end
+
+EPS_Toggle:OnChanged(function(value)
+    if value then
+        EnableEPS()
+        Fluent:Notify({
+            Title = "Rainbow EPS Enabled",
+            Content = "Safe Rainbow EPS is now active!",
+            Duration = 4
+        })
+    else
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr.Character then
+                if plr.Character:FindFirstChild("PlayerInfoGUI") then
+                    plr.Character.PlayerInfoGUI:Destroy()
+                end
+                if plr.Character:FindFirstChild("Highlight") then
+                    plr.Character.Highlight:Destroy()
+                end
+            end
+        end
+        Fluent:Notify({
+            Title = "Rainbow EPS Disabled",
+            Content = "EPS is now OFF",
+            Duration = 3
+        })
+    end
+end)
+
 
 -- Very Very Low Graphics (Ultra Potato Mode)
+l-- Ultra Potato++ Graphics (Safe, Max FPS)
 local Lighting = game:GetService("Lighting")
 local Terrain = workspace:FindFirstChildOfClass("Terrain")
 
-local function VeryLow()
+local function UltraPotato()
     -- Disable all post processing
     for _, v in ipairs(Lighting:GetChildren()) do
         if v:IsA("PostEffect") then
@@ -186,6 +317,7 @@ local function VeryLow()
     Lighting.Ambient = Color3.new(1,1,1)
     Lighting.OutdoorAmbient = Color3.new(1,1,1)
     Lighting.FogEnd = 1000000
+    Lighting.FogStart = 0
 
     -- Terrain Optimization
     if Terrain then
@@ -193,31 +325,42 @@ local function VeryLow()
         Terrain.WaterWaveSpeed = 0
         Terrain.WaterReflectance = 0
         Terrain.WaterTransparency = 1
+        Terrain.WaterColor = Color3.new(0,0,0)
     end
 
     -- Massive Optimization
     for _, obj in ipairs(workspace:GetDescendants()) do
-        -- Remove particles
-        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") then
+        -- Remove particles/effects
+        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Explosion") then
             obj.Enabled = false
         end
 
-        -- Replace all parts with plastic
+        -- Replace all parts with Plastic or SmoothPlastic
         if obj:IsA("BasePart") then
-            obj.Material = Enum.Material.Plastic
+            obj.Material = Enum.Material.SmoothPlastic
             obj.Reflectance = 0
+            obj.CastShadow = false
         end
 
-        -- Disable mesh parts visual (safe)
+        -- Disable MeshPart visuals (Safe)
         if obj:IsA("MeshPart") then
-            obj.Material = Enum.Material.Plastic  -- Force plastic look
-            obj.TextureID = ""                   -- Remove texture
+            obj.Material = Enum.Material.SmoothPlastic
+            obj.TextureID = ""
             obj.Reflectance = 0
+            obj.CastShadow = false
         end
 
-        -- Lower texture size
+        -- Remove special meshes
+        if obj:IsA("SpecialMesh") then
+            obj.MeshType = Enum.MeshType.FileMesh
+            obj.Scale = Vector3.new(1,1,1)
+            obj.TextureId = ""
+        end
+
+        -- Lower texture / decal
         if obj:IsA("Decal") or obj:IsA("Texture") then
-            obj.Transparency = 0.5               -- Light fade
+            obj.Transparency = 0.5
+            obj.Texture = ""
         end
     end
 
@@ -226,12 +369,12 @@ local function VeryLow()
 end
 
 Tabs.Main:AddButton({
-    Title = "VERY VERY LOW Graphics",
+    Title = "Ultra Potato++",
     Callback = function()
-        VeryLow()
+        UltraPotato()
         Fluent:Notify({
-            Title = "Very Low Mode",
-            Content = "Graphics set to VERY VERY LOW (Ultra Potato Mode)",
+            Title = "Ultra Potato Mode",
+            Content = "Graphics reduced to maximum FPS (Very Very Very Low)",
             Duration = 5
         })
     end
