@@ -1,3 +1,4 @@
+-- ===== CZWUYIAV HUB GUI =====
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
@@ -17,18 +18,16 @@ local Tabs = {
     Settings = Window:AddTab({ Title = "Settings", Icon = "" })
 }
 
-Fluent:Notify({
-    Title = "Notification",
-    Content = "This is a notification",
-    SubContent = "SubContent",
-    Duration = 5
-})
+Fluent:Notify({Title="Notification", Content="Script Loaded", Duration=5})
 
--- ===== Teleport =====
+-- ===== Services =====
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
 
+-- ===== Character Helper =====
 local function GetCharacter(plr)
     if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
         return plr.Character.HumanoidRootPart
@@ -36,317 +35,160 @@ local function GetCharacter(plr)
     return nil
 end
 
-local function GetPlayerList()
-    local list = {}
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer then
-            table.insert(list, plr.Name)
-        end
-    end
-    return list
-end
-
+-- ===== Teleport GUI =====
 local PlayerDropdown = Tabs.Main:AddDropdown("TP_Players", {
     Title = "Select Player",
-    Values = GetPlayerList(),
-    Multi = false,
+    Values = (function()
+        local list = {}
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer then table.insert(list, plr.Name) end
+        end
+        return list
+    end)(),
+    Multi = false
 })
 
--- Auto update player list
 task.spawn(function()
     while true do
-        PlayerDropdown:SetValues(GetPlayerList())
+        PlayerDropdown:SetValues((function()
+            local list = {}
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer then table.insert(list, plr.Name) end
+            end
+            return list
+        end)())
         task.wait(2)
-        if Fluent.Unloaded then break end
     end
 end)
 
 local ModeDropdown = Tabs.Main:AddDropdown("TP_Mode", {
     Title = "Teleport Mode",
-    Values = {"Instant", "Tween"},
+    Values = {"Instant","Tween"},
     Multi = false,
     Default = "Instant"
 })
 
-local TP_Toggle = Tabs.Main:AddToggle("TP_Toggle", {Title = "Teleport", Default = false})
-TP_Toggle:OnChanged(function(Value)
-    TP_Toggle.Value = Value
-end)
+local TP_Toggle = Tabs.Main:AddToggle("TP_Toggle",{Title="Teleport", Default=false})
+TP_Toggle:OnChanged(function(value) TP_Toggle.Value = value end)
 
 task.spawn(function()
     while true do
         task.wait()
         if TP_Toggle.Value then
             local targetName = PlayerDropdown.Value
-            if targetName and targetName ~= "" then
+            if targetName and targetName~="" then
                 local target = Players:FindFirstChild(targetName)
-                local targetHRP = GetCharacter(target)
                 local myHRP = GetCharacter(LocalPlayer)
+                local targetHRP = GetCharacter(target)
                 if myHRP and targetHRP then
-                    if ModeDropdown.Value == "Instant" then
+                    if ModeDropdown.Value=="Instant" then
                         myHRP.CFrame = targetHRP.CFrame * CFrame.new(0,0,-3)
-                    elseif ModeDropdown.Value == "Tween" then
-                        local info = TweenInfo.new((myHRP.Position - targetHRP.Position).Magnitude/250, Enum.EasingStyle.Linear)
-                        TweenService:Create(myHRP, info, {CFrame = targetHRP.CFrame * CFrame.new(0,0,-3)}):Play()
+                    else
+                        local info = TweenInfo.new((myHRP.Position-targetHRP.Position).Magnitude/250, Enum.EasingStyle.Linear)
+                        TweenService:Create(myHRP, info, {CFrame=targetHRP.CFrame*CFrame.new(0,0,-3)}):Play()
                     end
                 end
             end
         end
-        if Fluent.Unloaded then break end
     end
 end)
 
--- ===== WalkSpeed / Jump Power =====
+-- ===== WalkSpeed / Jump GUI =====
 local humanoid
 local function UpdateHumanoid()
     local char = LocalPlayer.Character
-    if char then
-        humanoid = char:FindFirstChildOfClass("Humanoid")
-    end
+    if char then humanoid = char:FindFirstChildOfClass("Humanoid") end
 end
-
-LocalPlayer.CharacterAdded:Connect(function(char)
-    char:WaitForChild("Humanoid")
-    UpdateHumanoid()
-end)
+LocalPlayer.CharacterAdded:Connect(function(char) char:WaitForChild("Humanoid"); UpdateHumanoid() end)
 UpdateHumanoid()
 
-local SpeedBox = Tabs.Main:AddInput("WalkSpeed_Box", {
-    Title = "Walk Speed",
-    Default = "16",
-    Placeholder = "Enter speed (e.g. 500)",
-    Numeric = true,
-})
-Tabs.Main:AddButton({
-    Title = "Set Speed",
-    Callback = function()
-        if humanoid then
-            local speedValue = tonumber(SpeedBox.Value)
-            if speedValue then
-                humanoid.WalkSpeed = speedValue
-                Fluent:Notify({Title="Speed Updated", Content="WalkSpeed set to: "..speedValue, Duration=3})
-            else
-                Fluent:Notify({Title="Invalid Number", Content="Enter valid number", Duration=3})
-            end
-        end
+local SpeedBox = Tabs.Main:AddInput("WalkSpeed_Box",{Title="Walk Speed",Default="16",Placeholder="Enter speed", Numeric=true})
+Tabs.Main:AddButton({Title="Set Speed",Callback=function()
+    if humanoid then
+        local val = tonumber(SpeedBox.Value)
+        if val then humanoid.WalkSpeed=val; Fluent:Notify({Title="Speed Updated",Content="WalkSpeed "..val,Duration=3}) end
     end
-})
+end})
 
-local JumpBox = Tabs.Main:AddInput("JumpPower_Box", {
-    Title = "Jump Power",
-    Default = "50",
-    Placeholder = "Enter jump power",
-    Numeric = true,
-})
-Tabs.Main:AddButton({
-    Title = "Set Jump Power",
-    Callback = function()
-        if humanoid then
-            local jp = tonumber(JumpBox.Value)
-            if jp then
-                humanoid.JumpPower = jp
-                Fluent:Notify({Title="Jump Updated", Content="JumpPower set to: "..jp, Duration=3})
-            else
-                Fluent:Notify({Title="Invalid Number", Content="Enter valid number", Duration=3})
-            end
-        end
+local JumpBox = Tabs.Main:AddInput("JumpPower_Box",{Title="Jump Power",Default="50",Placeholder="Enter jump", Numeric=true})
+Tabs.Main:AddButton({Title="Set Jump Power",Callback=function()
+    if humanoid then
+        local val = tonumber(JumpBox.Value)
+        if val then humanoid.JumpPower=val; Fluent:Notify({Title="Jump Updated",Content="JumpPower "..val,Duration=3}) end
     end
-})
-Tabs.Main:AddButton({
-    Title = "Reset Jump Power",
-    Callback = function()
-        if humanoid then
-            humanoid.JumpPower = 50
-            Fluent:Notify({Title="Jump Reset", Content="JumpPower reset to default (50)", Duration=3})
-        end
-    end
-})
+end})
+Tabs.Main:AddButton({Title="Reset Jump Power",Callback=function()
+    if humanoid then humanoid.JumpPower=50; Fluent:Notify({Title="Jump Reset",Content="JumpPower 50",Duration=3}) end
+end})
 
--- ===== Rainbow EPS =====
-local EPS_Toggle = Tabs.Main:AddToggle("EPS_Toggle", {
-    Title = "Rainbow EPS",
-    Default = false
-})
-
-local function CreateRainbowHighlight(character)
-    local h = Instance.new("Highlight")
-    h.FillColor = Color3.fromRGB(255,0,0)
-    h.OutlineColor = Color3.fromRGB(255,0,0)
-    h.FillTransparency = 0.7
-    h.OutlineTransparency = 0
-    h.Parent = character
-
-    task.spawn(function()
-        local hue = 0
-        while h.Parent do
-            hue = (hue + 1) % 360
-            local c = Color3.fromHSV(hue/360,1,1)
-            h.FillColor = c
-            h.OutlineColor = c
-            task.wait(0.03)
-        end
-    end)
-    return h
-end
-
+-- ===== Rainbow ESP =====
+local EPS_Toggle = Tabs.Main:AddToggle("EPS_Toggle",{Title="Rainbow ESP",Default=false})
 local function CreateBillboard(plr)
     if not plr.Character then return end
     local head = plr.Character:FindFirstChild("Head")
     if not head then return end
 
     local gui = Instance.new("BillboardGui")
-    gui.Name = "PlayerInfoGUI"
-    gui.Size = UDim2.new(4,0,1,0)
-    gui.Adornee = head
-    gui.AlwaysOnTop = true
-    gui.MaxDistance = 99999
+    gui.Name="PlayerInfoGUI"; gui.Size=UDim2.new(3,0,2,0); gui.StudsOffset=Vector3.new(0,3,0)
+    gui.Adornee=head; gui.AlwaysOnTop=true; gui.MaxDistance=999
+    local nameLabel = Instance.new("TextLabel"); nameLabel.Parent=gui; nameLabel.Size=UDim2.new(1,0,0.5,0)
+    nameLabel.BackgroundTransparency=1; nameLabel.TextSize=24; nameLabel.Font=Enum.Font.GothamBold; nameLabel.TextStrokeTransparency=0.5
+    local hpLabel = Instance.new("TextLabel"); hpLabel.Parent=gui; hpLabel.Position=UDim2.new(0,0,0.5,0)
+    hpLabel.Size=UDim2.new(1,0,0.5,0); hpLabel.BackgroundTransparency=1; hpLabel.TextSize=20; hpLabel.Font=Enum.Font.GothamBold; hpLabel.TextStrokeTransparency=0.5
+    gui.Parent=plr.Character
 
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Parent = gui
-    nameLabel.Size = UDim2.new(1,0,0.5,0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.TextSize = 20
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextStrokeTransparency = 0.5
-
-    local hpLabel = Instance.new("TextLabel")
-    hpLabel.Parent = gui
-    hpLabel.Position = UDim2.new(0,0,0.5,0)
-    hpLabel.Size = UDim2.new(1,0,0.5,0)
-    hpLabel.BackgroundTransparency = 1
-    hpLabel.TextSize = 18
-    hpLabel.Font = Enum.Font.GothamBold
-    hpLabel.TextStrokeTransparency = 0.5
-
-    gui.Parent = plr.Character
-
-    -- Rainbow effect
     task.spawn(function()
-        local hue = 0
+        local hue=0
         while gui.Parent do
-            hue = (hue + 1) % 360
-            local c = Color3.fromHSV(hue/360,1,1)
-            nameLabel.TextColor3 = c
-            hpLabel.TextColor3 = c
-            task.wait(0.03)
+            hue=(hue+1)%360
+            local c=Color3.fromHSV(hue/360,1,1)
+            nameLabel.TextColor3=c; hpLabel.TextColor3=c
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hpLabel.Text="HP: "..math.floor(hum.Health) end
+            task.wait(0.1)
         end
     end)
-    return gui, hpLabel
+
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor=Color3.fromRGB(180,180,180)
+    highlight.OutlineColor=Color3.fromRGB(255,255,255)
+    highlight.FillTransparency=0.6; highlight.OutlineTransparency=0
+    highlight.Parent=plr.Character
 end
 
 local function EnableEPS()
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer then
-            if plr.Character then
-                local gui, hpLabel = CreateBillboard(plr)
-                local h = CreateRainbowHighlight(plr.Character)
-                task.spawn(function()
-                    while EPS_Toggle.Value and plr.Character and hpLabel do
-                        local hum = plr.Character:FindFirstChild("Humanoid")
-                        if hum then
-                            hpLabel.Text = "HP: "..math.floor(hum.Health)
-                        end
-                        task.wait(0.1)
-                    end
-                    if gui then gui:Destroy() end
-                    if h then h:Destroy() end
-                end)
-            end
-        end
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr~=LocalPlayer and plr.Character then CreateBillboard(plr) end
     end
 end
+EPS_Toggle:OnChanged(function(val) if val then EnableEPS() end end)
 
-EPS_Toggle:OnChanged(function(value)
-    if value then
-        EnableEPS()
-        Fluent:Notify({Title="Rainbow EPS Enabled", Content="Safe Rainbow EPS is active!", Duration=4})
-    else
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr.Character then
-                if plr.Character:FindFirstChild("PlayerInfoGUI") then
-                    plr.Character.PlayerInfoGUI:Destroy()
-                end
-                if plr.Character:FindFirstChild("Highlight") then
-                    plr.Character.Highlight:Destroy()
-                end
-            end
-        end
-        Fluent:Notify({Title="Rainbow EPS Disabled", Content="EPS is OFF", Duration=3})
-    end
-end)
-
--- ===== Ultra Potato++ =====
-local Lighting = game:GetService("Lighting")
-local Terrain = workspace:FindFirstChildOfClass("Terrain")
-
+-- ===== Ultra Potato / Boots FPS =====
 local function UltraPotato()
-    -- Disable post-processing
-    for _, v in ipairs(Lighting:GetChildren()) do
-        if v:IsA("PostEffect") then
-            v.Enabled = false
-        end
-    end
-
-    Lighting.GlobalShadows = false
-    Lighting.Brightness = 1
-    Lighting.Ambient = Color3.new(1,1,1)
-    Lighting.OutdoorAmbient = Color3.new(1,1,1)
-    Lighting.FogStart = 0
-    Lighting.FogEnd = 1000000
-
+    for _,v in ipairs(Lighting:GetChildren()) do if v:IsA("PostEffect") then v.Enabled=false end end
+    Lighting.GlobalShadows=false; Lighting.Brightness=1
+    Lighting.Ambient=Color3.new(0.8,0.8,0.8); Lighting.OutdoorAmbient=Color3.new(0.8,0.8,0.8)
+    Lighting.FogStart=0; Lighting.FogEnd=100000
+    local Terrain=Workspace:FindFirstChildOfClass("Terrain")
     if Terrain then
-        Terrain.WaterWaveSize = 0
-        Terrain.WaterWaveSpeed = 0
-        Terrain.WaterReflectance = 0
-        Terrain.WaterTransparency = 1
-        Terrain.WaterColor = Color3.new(0,0,0)
+        Terrain.WaterWaveSize=0; Terrain.WaterWaveSpeed=0; Terrain.WaterReflectance=0
+        Terrain.WaterTransparency=1; Terrain.WaterColor=Color3.new(0.3,0.3,0.3)
     end
-
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Explosion") then
-            obj.Enabled = false
-        end
-        if obj:IsA("BasePart") then
-            obj.Material = Enum.Material.SmoothPlastic
-            obj.Reflectance = 0
-            obj.CastShadow = false
-        end
-        if obj:IsA("MeshPart") then
-            obj.Material = Enum.Material.SmoothPlastic
-            obj.TextureID = ""
-            obj.Reflectance = 0
-            obj.CastShadow = false
-        end
-        if obj:IsA("SpecialMesh") then
-            obj.MeshType = Enum.MeshType.FileMesh
-            obj.Scale = Vector3.new(1,1,1)
-            obj.TextureId = ""
-        end
-        if obj:IsA("Decal") or obj:IsA("Texture") then
-            obj.Transparency = 0.5
-            obj.Texture = ""
-        end
+    for _,obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Explosion") then obj.Enabled=false end
+        if obj:IsA("BasePart") then obj.Material=Enum.Material.SmoothPlastic; obj.Reflectance=0; obj.CastShadow=false; obj.Color=Color3.fromRGB(150,150,150) end
+        if obj:IsA("MeshPart") then obj.Material=Enum.Material.SmoothPlastic; obj.TextureID=""; obj.Reflectance=0; obj.CastShadow=false; obj.Color=Color3.fromRGB(150,150,150) end
     end
-
-    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    settings().Rendering.QualityLevel=Enum.QualityLevel.Level01
 end
+Tabs.Main:AddButton({Title="Ultra Potato++",Callback=UltraPotato})
 
-Tabs.Main:AddButton({
-    Title = "Ultra Potato++",
-    Callback = function()
-        UltraPotato()
-        Fluent:Notify({Title="Ultra Potato Mode", Content="Graphics reduced for max FPS", Duration=5})
-    end
-})
-
--- ===== Fluent Save / Interface =====
+-- ===== Save / Interface =====
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({})
 InterfaceManager:SetFolder("FluentScriptHub")
 SaveManager:SetFolder("FluentScriptHub/specific-game")
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
-
 Window:SelectTab(1)
-
-Fluent:Notify({Title="CZWUYIAV AV", Content="Script Loaded Successfully", Duration=8})
+Fluent:Notify({Title="CZWUYIAV AV",Content="Script Loaded Successfully",Duration=8})
