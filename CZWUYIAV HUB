@@ -13,6 +13,68 @@ local Window = Fluent:CreateWindow({
 })
 
 local Tabs = {
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+local function GetCharacter(plr)
+    if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+        return plr.Character.HumanoidRootPart
+    end
+    return nil
+end
+
+local function GetPlayerList()
+    local list = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            table.insert(list, plr.Name)
+        end
+    end
+    return list
+end
+
+local PlayerDropdown = Tabs.Main:AddDropdown("TP_Players", {
+    Title = "เลือกผู้เล่น",
+    Values = GetPlayerList(),
+    Multi = false,
+})
+
+local ModeDropdown = Tabs.Main:AddDropdown("TP_Mode", {
+    Title = "โหมดวาป",
+    Values = {"Instant", "Tween"},
+    Multi = false,
+    Default = "Instant"
+})
+
+local Toggle = Tabs.Main:AddToggle("TP_Toggle", {Title = "กดค้างวาป", Default = false})
+
+Toggle:OnChanged(function(Value)
+    Toggle.Value = Value
+end)
+
+task.spawn(function()
+    while true do
+        task.wait()
+        if Toggle.Value then
+            local targetName = PlayerDropdown.Value
+            if targetName and targetName ~= "" then
+                local target = Players:FindFirstChild(targetName)
+                local targetHRP = GetCharacter(target)
+                local myHRP = GetCharacter(LocalPlayer)
+                if myHRP and targetHRP then
+                    if ModeDropdown.Value == "Instant" then
+                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(0,0,-3)
+                    elseif ModeDropdown.Value == "Tween" then
+                        local info = TweenInfo.new((myHRP.Position - targetHRP.Position).Magnitude/250, Enum.EasingStyle.Linear)
+                        TweenService:Create(myHRP, info, {CFrame = targetHRP.CFrame * CFrame.new(0,0,-3)}):Play()
+                    end
+                end
+            end
+        end
+        if Fluent.Unloaded then break end
+    end
+end)
     Main = Window:AddTab({ Title = "Main", Icon = "" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "" })
 }
