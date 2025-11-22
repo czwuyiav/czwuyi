@@ -55,13 +55,13 @@ local PlayerDropdown = Tabs.Main:AddDropdown("TP_Players", {
 })
 
 local ModeDropdown = Tabs.Main:AddDropdown("TP_Mode", {
-    Title = "โหมดTp",
+    Title = "โหมด Teleport",
     Values = {"Instant", "Tween"},
     Multi = false,
     Default = "Instant"
 })
 
-local TP_Toggle = Tabs.Main:AddToggle("TP_Toggle", {Title = "Tp", Default = false})
+local TP_Toggle = Tabs.Main:AddToggle("TP_Toggle", {Title = "Teleport", Default = false})
 
 TP_Toggle:OnChanged(function(Value)
     TP_Toggle.Value = Value
