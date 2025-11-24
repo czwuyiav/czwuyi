@@ -91,7 +91,7 @@ task.spawn(function()
             end
         end
     end
-end)
+})
 
 -- ===== WalkSpeed / Jump =====
 local humanoid
@@ -269,3 +269,15 @@ InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 Window:SelectTab(1)
 Fluent:Notify({Title="CZWUYIAV AV",Content="Script Loaded Successfully",Duration=8})
+
+
+-- ===== UI Toggle (Alt Key) =====
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and (input.KeyCode == Enum.KeyCode.LeftAlt or input.KeyCode == Enum.KeyCode.RightAlt) then
+        if Window and Window.DraggableFrame then
+            local isVisible = Window.DraggableFrame.Visible
+            Window.DraggableFrame.Visible = not isVisible
+            Window.DraggableFrame.Enabled = not isVisible
+        end
+    end
+end)
