@@ -343,6 +343,7 @@ UIS.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         if ToggleButton.AbsolutePosition.X <= input.Position.X and input.Position.X <= ToggleButton.AbsolutePosition.X + ToggleButton.AbsoluteSize.X and
            ToggleButton.AbsolutePosition.Y <= input.Position.Y and input.Position.Y <= ToggleButton.AbsolutePosition.Y + ToggleButton.AbsoluteSize.Y then
+
             dragInput = input
             startDrag(input)
         end
@@ -361,6 +362,72 @@ ToggleButton.MouseButton1Click:Connect(function()
             local isVisible = Window.DraggableFrame.Visible
             Window.DraggableFrame.Visible = not isVisible
             Window.DraggableFrame.Enabled = not isVisible
+        end
+    end
+end)
+--------------------------
+-- UI TOGGLE / SHOW/HIDE
+--------------------------
+
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local FluentUI = PlayerGui:WaitForChild("Fluent_Main", 5)  -- UI หลักของ Fluent
+
+-- ถ้าไม่เจอ ให้ลองหา Frame หลักอัตโนมัติ
+if not FluentUI then
+    for _, v in pairs(PlayerGui:GetChildren()) do
+        if v:IsA("Frame") and v:FindFirstChild("TitleBar") then
+            FluentUI = v
+            break
+        end
+    end
+end
+
+-- ถ้า FluentUI ยังไม่เจอ
+if not FluentUI then
+    warn("[UI ERROR] หา Fluent UI ไม่เจอ")
+else
+    print("Fluent UI Loaded")
+end
+
+------------------------------------------
+-- ปุ่มเล็กด้านซ้ายจอ (ลากได้)
+------------------------------------------
+local ToggleFrame = Instance.new("Frame")
+ToggleFrame.Name = "CZWUYIAV_ToggleFrame"
+ToggleFrame.Size = UDim2.fromOffset(38, 38)
+ToggleFrame.Position = UDim2.fromOffset(10, 200)
+ToggleFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+ToggleFrame.BorderSizePixel = 0
+ToggleFrame.Active = true
+ToggleFrame.Draggable = true
+ToggleFrame.Parent = PlayerGui
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(1, 0, 1, 0)
+ToggleButton.Text = "C"
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.TextSize = 20
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ToggleButton.BorderSizePixel = 0
+ToggleButton.Parent = ToggleFrame
+
+------------------------------------------
+-- C = เปิด/ปิด UI
+------------------------------------------
+ToggleButton.MouseButton1Click:Connect(function()
+    if not FluentUI then return end
+    FluentUI.Visible = not FluentUI.Visible
+end)
+
+------------------------------------------
+-- ปุ่ม ALT = เปิด/ปิด UI
+------------------------------------------
+UIS.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == Enum.KeyCode.LeftAlt or input.KeyCode == Enum.KeyCode.RightAlt then
+        if FluentUI then
+            FluentUI.Visible = not FluentUI.Visible
         end
     end
 end)
