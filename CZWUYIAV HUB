@@ -7,7 +7,7 @@ local Window = Fluent:CreateWindow({
     Title = "CZWUYIAV HUB " .. Fluent.Version,
     SubTitle = "czwuy_AV",
     TabWidth = 160,
-    Size = UDim2.fromOffset(580, 580),
+    Size = UDim2.fromOffset(400, 450),
     Acrylic = true,
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.LeftControl
@@ -15,7 +15,8 @@ local Window = Fluent:CreateWindow({
 
 local Tabs = {
     Main = Window:AddTab({ Title = "Main", Icon = "" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "" })
+    Settings = Window:AddTab({ Title = "Settings", Icon = "" }),
+    EPS = Window:AddTab({ Title = "ESP", Icon = "" })
 }
 
 Fluent:Notify({Title="Notification", Content="Script Loaded", Duration=5})
@@ -36,14 +37,13 @@ local function GetCharacter(plr)
     return nil
 end
 
--- ===== Player Dropdown (ใช้ร่วม TP + Aimbot) =====
+-- ===== Player Dropdown (TP) =====
 local PlayerDropdown = Tabs.Main:AddDropdown("Player_Select", {
     Title = "Select Player",
     Values = {},
     Multi = false
 })
 
--- Auto Refresh Player List
 task.spawn(function()
     while task.wait(2) do
         local list = {}
@@ -58,6 +58,7 @@ end)
 local TP_Toggle = Tabs.Main:AddToggle("Teleport_Toggle", {Title="Teleport", Default=false})
 local ModeDropdown = Tabs.Main:AddDropdown("Teleport_Mode", {Title="Teleport Mode", Values={"Instant","Tween"}, Multi=false, Default="Instant"})
 
+local tweening = false
 task.spawn(function()
     while task.wait() do
         if TP_Toggle.Value then
@@ -68,27 +69,18 @@ task.spawn(function()
                 if ModeDropdown.Value=="Instant" then
                     myHRP.CFrame = targetHRP.CFrame * CFrame.new(0,0,-3)
                 else
-                    local info = TweenInfo.new((myHRP.Position-targetHRP.Position).Magnitude/250, Enum.EasingStyle.Linear)
-                    TweenService:Create(myHRP, info, {CFrame=targetHRP.CFrame*CFrame.new(0,0,-3)}):Play()
+                    if not tweening then
+                        tweening = true
+                        local info = TweenInfo.new((myHRP.Position-targetHRP.Position).Magnitude/250, Enum.EasingStyle.Linear)
+                        local tw = TweenService:Create(myHRP, info, {CFrame=targetHRP.CFrame*CFrame.new(0,0,-3)})
+                        tw:Play()
+                        tw.Completed:Wait()
+                        tweening = false
+                    end
                 end
             end
-        end
-    end
-end)
-
--- ===== Aimbot =====
-local AimbotToggle = Tabs.Main:AddToggle("Aimbot_Toggle", {Title="Aimbot", Default=false})
-
-task.spawn(function()
-    while task.wait() do
-        if AimbotToggle.Value then
-            local target = Players:FindFirstChild(PlayerDropdown.Value)
-            local myHRP = GetCharacter(LocalPlayer)
-            local targetHRP = GetCharacter(target)
-            if myHRP and targetHRP then
-                local dir = (targetHRP.Position - myHRP.Position).Unit
-                myHRP.CFrame = CFrame.new(myHRP.Position, myHRP.Position + dir)
-            end
+        else
+            tweening = false
         end
     end
 end)
@@ -102,162 +94,141 @@ end
 LocalPlayer.CharacterAdded:Connect(function(char) char:WaitForChild("Humanoid"); UpdateHumanoid() end)
 UpdateHumanoid()
 
-local SpeedBox = Tabs.Main:AddInput("WalkSpeed_Box",{Title="Walk Speed",Default="16",Placeholder="Enter speed", Numeric=true})
-Tabs.Main:AddButton({Title="Set Speed",Callback=function()
+local SpeedBox = Tabs.Settings:AddInput("WalkSpeed_Box",{Title="Walk Speed",Default="16",Placeholder="Enter speed", Numeric=true})
+Tabs.Settings:AddButton({Title="Set Speed",Callback=function()
     if humanoid then
         local val = tonumber(SpeedBox.Value)
         if val then humanoid.WalkSpeed=val; Fluent:Notify({Title="Speed Updated",Content="WalkSpeed "..val,Duration=3}) end
     end
 end})
 
-local JumpBox = Tabs.Main:AddInput("JumpPower_Box",{Title="Jump Power",Default="50",Placeholder="Enter jump", Numeric=true})
-Tabs.Main:AddButton({Title="Set Jump Power",Callback=function()
+local JumpBox = Tabs.Settings:AddInput("JumpPower_Box",{Title="Jump Power",Default="50",Placeholder="Enter jump", Numeric=true})
+Tabs.Settings:AddButton({Title="Set Jump Power",Callback=function()
     if humanoid then
         local val = tonumber(JumpBox.Value)
         if val then humanoid.JumpPower=val; Fluent:Notify({Title="Jump Updated",Content="JumpPower "..val,Duration=3}) end
     end
 end})
-Tabs.Main:AddButton({Title="Reset Jump Power",Callback=function()
-    if humanoid then humanoid.JumpPower=50; Fluent:Notify({Title="Jump Reset",Content="JumpPower 50",Duration=3}) end
-end})
 
--- ===== Rainbow ESP =====
-local EPS_Toggle = Tabs.Main:AddToggle("EPS_Toggle",{Title="Rainbow ESP",Default=false})
-local function CreateBillboard(plr)
+-- ===== FPS Boost (Super Low) =====
+local FPSToggle = Tabs.Settings:AddToggle("FPS_Boost",{Title="FPS Boost", Default=false})
+FPSToggle:OnChanged(function(val)
+    if val then
+        -- Lighting / Terrain / Effects Super Low
+        Lighting.GlobalShadows = false
+        Lighting.Brightness = 0.5
+        Lighting.Ambient = Color3.fromRGB(128,128,128)
+        Lighting.OutdoorAmbient = Color3.fromRGB(128,128,128)
+        Lighting.FogStart = 0
+        Lighting.FogEnd = 100000
+        local Terrain = workspace:FindFirstChildOfClass("Terrain")
+        if Terrain then
+            Terrain.WaterWaveSize = 0
+            Terrain.WaterWaveSpeed = 0
+            Terrain.WaterReflectance = 0
+            Terrain.WaterTransparency = 1
+            Terrain.WaterColor = Color3.fromRGB(128,128,128)
+        end
+        for _,obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Explosion") then
+                obj.Enabled = false
+            end
+            if obj:IsA("BasePart") then
+                obj.Material = Enum.Material.SmoothPlastic
+                obj.Reflectance = 0
+                obj.CastShadow = false
+                obj.Color = Color3.fromRGB(128,128,128)
+            end
+            if obj:IsA("MeshPart") then
+                obj.Material = Enum.Material.SmoothPlastic
+                obj.TextureID = ""
+                obj.Reflectance = 0
+                obj.CastShadow = false
+                obj.Color = Color3.fromRGB(128,128,128)
+            end
+        end
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        FPSToggle.Container.BackgroundColor3 = Color3.fromRGB(50,150,255)
+    else
+        -- คืนค่า Lighting / Rendering
+        Lighting.GlobalShadows = true
+        Lighting.Brightness = 2
+        Lighting.Ambient = Color3.fromRGB(255,255,255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255,255,255)
+        Lighting.FogStart = 0
+        Lighting.FogEnd = 1000
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level21
+    end
+end)
+
+-- ===== ESP Tab =====
+local NameToggle = Tabs.EPS:AddToggle("ESP_Name",{Title="Name ESP", Default=false})
+local HighlightToggle = Tabs.EPS:AddToggle("ESP_Highlight",{Title="Highlight ESP", Default=false})
+local HealthToggle = Tabs.EPS:AddToggle("ESP_Health",{Title="Health ESP", Default=false})
+
+local function CreateESP(plr)
     if not plr.Character then return end
     local head = plr.Character:FindFirstChild("Head")
     if not head then return end
 
-    local gui = Instance.new("BillboardGui")
-    gui.Name="PlayerInfoGUI"; gui.Size=UDim2.new(4,0,4,0); gui.StudsOffset=Vector3.new(0,3,0)
-    gui.Adornee=head; gui.AlwaysOnTop=true; gui.MaxDistance=9999
+    -- Name ESP
+    local nameGui = Instance.new("BillboardGui")
+    nameGui.Name="NameESP"; nameGui.Size=UDim2.new(4,0,4,0); nameGui.StudsOffset=Vector3.new(0,3,0)
+    nameGui.Adornee=head; nameGui.AlwaysOnTop=true
 
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Parent=gui; nameLabel.Size=UDim2.new(1,0,0.5,0)
+    nameLabel.Parent=nameGui; nameLabel.Size=UDim2.new(1,0,0.5,0)
     nameLabel.BackgroundTransparency=1; nameLabel.TextSize=25
     nameLabel.Font=Enum.Font.GothamBold; nameLabel.TextStrokeTransparency=0.5
 
-    local hpLabel = Instance.new("TextLabel")
-    hpLabel.Parent=gui; hpLabel.Position=UDim2.new(0,0,0.5,0)
-    hpLabel.Size=UDim2.new(1,0,0.5,0); hpLabel.BackgroundTransparency=1
-    hpLabel.TextSize=25; hpLabel.Font=Enum.Font.GothamBold; hpLabel.TextStrokeTransparency=0.5
+    nameGui.Parent=plr.Character
 
-    gui.Parent=plr.Character
+    -- Health ESP
+    local healthGui = Instance.new("BillboardGui")
+    healthGui.Name="HealthESP"; healthGui.Size=UDim2.new(3,0,3,0); healthGui.StudsOffset=Vector3.new(0,1.5,0)
+    healthGui.Adornee=head; healthGui.AlwaysOnTop=true
+    local healthLabel = Instance.new("TextLabel")
+    healthLabel.Parent=healthGui; healthLabel.Size=UDim2.new(1,0,1,0)
+    healthLabel.BackgroundTransparency=1; healthLabel.TextSize=20
+    healthLabel.Font=Enum.Font.GothamBold; healthLabel.TextStrokeTransparency=0.5
+    healthGui.Parent=plr.Character
+
+    -- Highlight / Hitbox
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = Color3.fromRGB(255,0,0)
+    highlight.OutlineColor = Color3.fromRGB(255,255,255)
+    highlight.FillTransparency = 0.6; highlight.OutlineTransparency=0
+    highlight.Parent = plr.Character
 
     task.spawn(function()
-        local hue=0
-        while gui.Parent do
-            hue=(hue+1)%360
-            local c=Color3.fromHSV(hue/360,1,1)
-            nameLabel.TextColor3=c; hpLabel.TextColor3=c
+        while plr.Character do
             local hum = plr.Character:FindFirstChildOfClass("Humanoid")
-            if hum then hpLabel.Text="HP: "..math.floor(hum.Health) end
+            if hum then
+                healthLabel.Text="HP: "..math.floor(hum.Health)
+            end
+            if NameToggle.Value then
+                nameLabel.Text = plr.Name
+                nameLabel.TextColor3 = Color3.fromRGB(0, 150, 255)
+            end
+            if HighlightToggle.Value then
+                highlight.FillColor = Color3.fromRGB(255,0,0)
+            end
+            if HealthToggle.Value then
+                healthLabel.TextColor3 = Color3.fromRGB(0,150,255)
+            end
             task.wait(0.1)
         end
     end)
-
-    local highlight = Instance.new("Highlight")
-    highlight.FillColor=Color3.fromRGB(255,0,0)
-    highlight.OutlineColor=Color3.fromRGB(255,255,255)
-    highlight.FillTransparency=0.7; highlight.OutlineTransparency=0
-    highlight.Parent=plr.Character
 end
 
-EPS_Toggle:OnChanged(function(val)
-    if val then
-        for _,plr in ipairs(Players:GetPlayers()) do
-            if plr~=LocalPlayer and plr.Character then CreateBillboard(plr) end
-        end
-    end
-end)
-
--- ===== Ultra Potato =====
-local function UltraPotato()
-    for _,v in ipairs(Lighting:GetChildren()) do if v:IsA("PostEffect") then v.Enabled=false end end
-    Lighting.GlobalShadows=false; Lighting.Brightness=0.5
-    Lighting.Ambient=Color3.new(0.5,0.5,0.5); Lighting.OutdoorAmbient=Color3.new(0.5,0.5,0.5)
-    Lighting.FogStart=0; Lighting.FogEnd=100000
-    local Terrain=Workspace:FindFirstChildOfClass("Terrain")
-    if Terrain then
-        Terrain.WaterWaveSize=0; Terrain.WaterWaveSpeed=0; Terrain.WaterReflectance=0
-        Terrain.WaterTransparency=1; Terrain.WaterColor=Color3.new(0.5,0.5,0.5)
-    end
-    for _,obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Explosion") then obj.Enabled=false end
-        if obj:IsA("BasePart") then obj.Material=Enum.Material.SmoothPlastic; obj.Reflectance=0; obj.CastShadow=false; obj.Color=Color3.new(0.5,0.5,0.5) end
-        if obj:IsA("MeshPart") then obj.Material=Enum.Material.SmoothPlastic; obj.TextureID=""; obj.Reflectance=0; obj.CastShadow=false; obj.Color=Color3.new(0.5,0.5,0.5) end
-    end
-    settings().Rendering.QualityLevel=Enum.QualityLevel.Level01
-end
-Tabs.Main:AddButton({Title="Ultra Potato++",Callback=UltraPotato})
-
--- ===== Auto Hit / No Stun =====
-local HitToggle = Tabs.Main:AddToggle("AutoHit_Toggle", {Title = "Auto Hit Skill (Always Hit)", Default = false})
-local HitModeDropdown = Tabs.Main:AddDropdown("Hit_Mode", {Title = "Hit Mode", Values = {"Auto", "Selected Player"}, Multi=false, Default="Auto"})
-local TargetHitDropdown = Tabs.Main:AddDropdown("Hit_Target", {Title="Target Player", Values={}, Multi=false})
-
--- Auto update target list
 task.spawn(function()
     while task.wait(2) do
-        local list = {}
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer then table.insert(list, plr.Name) end
-        end
-        TargetHitDropdown:SetValues(list)
-    end
-end)
-
-local SkillKeyDropdown = Tabs.Main:AddDropdown("Skill_Key", {Title="Skill Key", Values={"Z","X","C","V","F"}, Multi=false, Default="Z"})
-
-local function GetClosestTarget(maxDist)
-    local myChar = LocalPlayer.Character
-    if not myChar then return nil end
-    local myHRP = myChar:FindFirstChild("HumanoidRootPart")
-    if not myHRP then return nil end
-    maxDist = maxDist or 80
-    local closest
-    local distMin = maxDist
-    for _,plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character then
-            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local d = (myHRP.Position - hrp.Position).Magnitude
-                if d < distMin then
-                    distMin = d
-                    closest = plr
-                end
+        for _,plr in ipairs(Players:GetPlayers()) do
+            if plr~=LocalPlayer and plr.Character then
+                CreateESP(plr)
             end
         end
     end
-    return closest
-end
-
-local function AutoHit()
-    local target
-    if HitModeDropdown.Value == "Auto" then
-        target = GetClosestTarget(80)
-    else
-        local name = TargetHitDropdown.Value
-        if name and name ~= "" then
-            target = Players:FindFirstChild(name)
-        end
-    end
-    if not target or not target.Character then return end
-
-    local remote = game.ReplicatedStorage:FindFirstChild("SkillRemote")
-    if remote then
-        remote:FireServer(target)
-    end
-
-    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if hum then hum:SetStateEnabled(Enum.HumanoidStateType.Stunned, false) end
-end
-
-UIS.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if not HitToggle.Value then return end
-    local key = SkillKeyDropdown.Value
-    if input.KeyCode == Enum.KeyCode[key] then AutoHit() end
 end)
 
 -- ===== Save / Interface =====
@@ -269,71 +240,3 @@ InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 Window:SelectTab(1)
 Fluent:Notify({Title="CZWUYIAV AV",Content="Script Loaded Successfully",Duration=8})
----------------------------------------------------
---  UI Toggle Button (CZWUYIAV - TOGGLE UI)
----------------------------------------------------
-
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
--- หา UI หลักของ Fluent
-local FluentMain = nil
-for _, v in ipairs(PlayerGui:GetChildren()) do
-    if v:IsA("ScreenGui") and v:FindFirstChild("MainFrame") then
-        FluentMain = v
-        break
-    end
-    if v:IsA("ScreenGui") and v:FindFirstChild("Container") then
-        FluentMain = v
-        break
-    end
-end
-
--- ปุ่ม Toggle
-local ToggleGui = Instance.new("ScreenGui")
-ToggleGui.Name = "CZWUYIAV_ToggleUI"
-ToggleGui.Parent = PlayerGui
-ToggleGui.ResetOnSpawn = false
-ToggleGui.IgnoreGuiInset = true
-
-local ToggleFrame = Instance.new("Frame")
-ToggleFrame.Name = "ToggleFrame"
-ToggleFrame.Size = UDim2.fromOffset(55, 55)  -- ขนาดกำลังดี
-ToggleFrame.Position = UDim2.fromOffset(20, 200)
-ToggleFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ToggleFrame.BorderSizePixel = 0
-ToggleFrame.Active = true
-ToggleFrame.Draggable = true
-ToggleFrame.Parent = ToggleGui
-
-local UICorner = Instance.new("UICorner", ToggleFrame)
-UICorner.CornerRadius = UDim.new(0, 8)
-
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Size = UDim2.new(1, 0, 1, 0)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-ToggleButton.Text = "C"
-ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.TextSize = 28
-ToggleButton.BorderSizePixel = 0
-ToggleButton.Parent = ToggleFrame
-
-local UICorner2 = Instance.new("UICorner", ToggleButton)
-UICorner2.CornerRadius = UDim.new(0, 8)
-
--- เอฟเฟกต์กด
-ToggleButton.MouseButton1Click:Connect(function()
-    if FluentMain then
-        FluentMain.Enabled = not FluentMain.Enabled
-    end
-end)
-
--- Alt = เปิด/ปิด UI
-UIS.InputBegan:Connect(function(input, processed)
-    if processed then return end
-    if input.KeyCode == Enum.KeyCode.LeftAlt or input.KeyCode == Enum.KeyCode.RightAlt then
-        if FluentMain then
-            FluentMain.Enabled = not FluentMain.Enabled
-        end
-    end
-end)
