@@ -26,7 +26,7 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
-local UIS = game:GetService("UserInputService") -- UIS (UserInputService) ถูกกำหนดไว้ที่นี่
+local UIS = game:GetService("UserInputService")
 
 -- ===== Character Helper =====
 local function GetCharacter(plr)
@@ -269,165 +269,71 @@ InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 Window:SelectTab(1)
 Fluent:Notify({Title="CZWUYIAV AV",Content="Script Loaded Successfully",Duration=8})
-
-
--- ******************************************************
--- ===== NEW: UI TOGGLE CONTROLS (ALT KEY & C BUTTON) =====
--- ******************************************************
-
--- [1] Alt Key Toggle (เปิด/ปิด UI ด้วยปุ่ม Alt)
-UIS.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and (input.KeyCode == Enum.KeyCode.LeftAlt or input.KeyCode == Enum.KeyCode.RightAlt) then
-        if Window and Window.DraggableFrame then
-            local isVisible = Window.DraggableFrame.Visible
-            Window.DraggableFrame.Visible = not isVisible
-            Window.DraggableFrame.Enabled = not isVisible
-            -- ซ่อนหรือแสดงปุ่ม 'C' ตามสถานะ UI หลัก
-            if ToggleFrame then
-                ToggleFrame.Visible = not isVisible
-            end
-        end
-    end
-end)
-
--- [2] C Button Toggle (ปุ่มสี่เหลี่ยมเล็ก ลากได้)
-local ToggleFrame = Instance.new("Frame")
-ToggleFrame.Name = "CZWUYIAV_ToggleFrame"
-ToggleFrame.Size = UDim2.fromOffset(30, 30)
-ToggleFrame.Position = UDim2.fromOffset(10, 200)
-ToggleFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ToggleFrame.BorderSizePixel = 0
-ToggleFrame.ZIndex = 999
-ToggleFrame.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Name = "C_Toggle"
-ToggleButton.Text = "C"
-ToggleButton.Size = UDim2.new(1, 0, 1, 0)
-ToggleButton.Position = UDim2.new(0, 0, 0, 0)
-ToggleButton.BackgroundTransparency = 0
-ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.TextSize = 18
-ToggleButton.BorderSizePixel = 0
-ToggleButton.Parent = ToggleFrame
-
-local dragging = false
-local dragInput = nil
-local dragStart = nil
-local startPos = nil
-
-local function startDrag(input)
-    dragging = true
-    dragStart = input.Position
-    startPos = ToggleFrame.Position
-    input.Changed:Connect(function()
-        if input.UserInputState == Enum.UserInputState.End then
-            dragging = false
-        end
-    end)
-end
-
-local function doDrag(input)
-    if dragging then
-        local delta = input.Position - dragStart
-        ToggleFrame.Position = UDim2.fromOffset(
-            startPos.X.Offset + delta.X,
-            startPos.Y.Offset + delta.Y
-        )
-    end
-end
-
-UIS.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        if ToggleButton.AbsolutePosition.X <= input.Position.X and input.Position.X <= ToggleButton.AbsolutePosition.X + ToggleButton.AbsoluteSize.X and
-           ToggleButton.AbsolutePosition.Y <= input.Position.Y and input.Position.Y <= ToggleButton.AbsolutePosition.Y + ToggleButton.AbsoluteSize.Y then
-
-            dragInput = input
-            startDrag(input)
-        end
-    end
-end)
-
-UIS.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        doDrag(input)
-    end
-end)
-
-ToggleButton.MouseButton1Click:Connect(function()
-    if not dragging then
-        if Window and Window.DraggableFrame then
-            local isVisible = Window.DraggableFrame.Visible
-            Window.DraggableFrame.Visible = not isVisible
-            Window.DraggableFrame.Enabled = not isVisible
-        end
-    end
-end)
---------------------------
--- UI TOGGLE / SHOW/HIDE
---------------------------
+---------------------------------------------------
+--  UI Toggle Button (CZWUYIAV - TOGGLE UI)
+---------------------------------------------------
 
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local FluentUI = PlayerGui:WaitForChild("Fluent_Main", 5)  -- UI หลักของ Fluent
 
--- ถ้าไม่เจอ ให้ลองหา Frame หลักอัตโนมัติ
-if not FluentUI then
-    for _, v in pairs(PlayerGui:GetChildren()) do
-        if v:IsA("Frame") and v:FindFirstChild("TitleBar") then
-            FluentUI = v
-            break
-        end
+-- หา UI หลักของ Fluent
+local FluentMain = nil
+for _, v in ipairs(PlayerGui:GetChildren()) do
+    if v:IsA("ScreenGui") and v:FindFirstChild("MainFrame") then
+        FluentMain = v
+        break
+    end
+    if v:IsA("ScreenGui") and v:FindFirstChild("Container") then
+        FluentMain = v
+        break
     end
 end
 
--- ถ้า FluentUI ยังไม่เจอ
-if not FluentUI then
-    warn("[UI ERROR] หา Fluent UI ไม่เจอ")
-else
-    print("Fluent UI Loaded")
-end
+-- ปุ่ม Toggle
+local ToggleGui = Instance.new("ScreenGui")
+ToggleGui.Name = "CZWUYIAV_ToggleUI"
+ToggleGui.Parent = PlayerGui
+ToggleGui.ResetOnSpawn = false
+ToggleGui.IgnoreGuiInset = true
 
-------------------------------------------
--- ปุ่มเล็กด้านซ้ายจอ (ลากได้)
-------------------------------------------
 local ToggleFrame = Instance.new("Frame")
-ToggleFrame.Name = "CZWUYIAV_ToggleFrame"
-ToggleFrame.Size = UDim2.fromOffset(38, 38)
-ToggleFrame.Position = UDim2.fromOffset(10, 200)
-ToggleFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+ToggleFrame.Name = "ToggleFrame"
+ToggleFrame.Size = UDim2.fromOffset(55, 55)  -- ขนาดกำลังดี
+ToggleFrame.Position = UDim2.fromOffset(20, 200)
+ToggleFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 ToggleFrame.BorderSizePixel = 0
 ToggleFrame.Active = true
 ToggleFrame.Draggable = true
-ToggleFrame.Parent = PlayerGui
+ToggleFrame.Parent = ToggleGui
+
+local UICorner = Instance.new("UICorner", ToggleFrame)
+UICorner.CornerRadius = UDim.new(0, 8)
 
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Size = UDim2.new(1, 0, 1, 0)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 ToggleButton.Text = "C"
-ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.TextSize = 20
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.TextSize = 28
 ToggleButton.BorderSizePixel = 0
 ToggleButton.Parent = ToggleFrame
 
-------------------------------------------
--- C = เปิด/ปิด UI
-------------------------------------------
+local UICorner2 = Instance.new("UICorner", ToggleButton)
+UICorner2.CornerRadius = UDim.new(0, 8)
+
+-- เอฟเฟกต์กด
 ToggleButton.MouseButton1Click:Connect(function()
-    if not FluentUI then return end
-    FluentUI.Visible = not FluentUI.Visible
+    if FluentMain then
+        FluentMain.Enabled = not FluentMain.Enabled
+    end
 end)
 
-------------------------------------------
--- ปุ่ม ALT = เปิด/ปิด UI
-------------------------------------------
+-- Alt = เปิด/ปิด UI
 UIS.InputBegan:Connect(function(input, processed)
     if processed then return end
     if input.KeyCode == Enum.KeyCode.LeftAlt or input.KeyCode == Enum.KeyCode.RightAlt then
-        if FluentUI then
-            FluentUI.Visible = not FluentUI.Visible
+        if FluentMain then
+            FluentMain.Enabled = not FluentMain.Enabled
         end
     end
 end)
