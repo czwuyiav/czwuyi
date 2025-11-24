@@ -7,7 +7,7 @@ local Window = Fluent:CreateWindow({
     Title = "CZWUYIAV HUB " .. Fluent.Version,
     SubTitle = "czwuy_AV",
     TabWidth = 160,
-    Size = UDim2.fromOffset(530, 530),
+    Size = UDim2.fromOffset(580, 580),
     Acrylic = true,
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.LeftControl
@@ -16,12 +16,11 @@ local Window = Fluent:CreateWindow({
 local Tabs = {
     Main = Window:AddTab({ Title = "Main", Icon = "" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "" }),
-    EPS = Window:AddTab({ Title = "ESP", Icon = "" })
+    ESP = Window:AddTab({ Title = "ESP", Icon = "" })
 }
 
 Fluent:Notify({Title="Notification", Content="Script Loaded", Duration=5})
 
--- ===== Services =====
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
@@ -29,7 +28,6 @@ local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local UIS = game:GetService("UserInputService")
 
--- ===== Character Helper =====
 local function GetCharacter(plr)
     if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
         return plr.Character.HumanoidRootPart
@@ -37,7 +35,6 @@ local function GetCharacter(plr)
     return nil
 end
 
--- ===== Player Dropdown (TP) =====
 local PlayerDropdown = Tabs.Main:AddDropdown("Player_Select", {
     Title = "Select Player",
     Values = {},
@@ -54,7 +51,6 @@ task.spawn(function()
     end
 end)
 
--- ===== Teleport =====
 local TP_Toggle = Tabs.Main:AddToggle("Teleport_Toggle", {Title="Teleport", Default=false})
 local ModeDropdown = Tabs.Main:AddDropdown("Teleport_Mode", {Title="Teleport Mode", Values={"Instant","Tween"}, Multi=false, Default="Instant"})
 
@@ -85,7 +81,6 @@ task.spawn(function()
     end
 end)
 
--- ===== WalkSpeed / Jump =====
 local humanoid
 local function UpdateHumanoid()
     local char = LocalPlayer.Character
@@ -110,11 +105,9 @@ Tabs.Settings:AddButton({Title="Set Jump Power",Callback=function()
     end
 end})
 
--- ===== FPS Boost (Super Low) =====
 local FPSToggle = Tabs.Settings:AddToggle("FPS_Boost",{Title="FPS Boost", Default=false})
 FPSToggle:OnChanged(function(val)
     if val then
-        -- Lighting / Terrain / Effects Super Low
         Lighting.GlobalShadows = false
         Lighting.Brightness = 0.5
         Lighting.Ambient = Color3.fromRGB(128,128,128)
@@ -150,7 +143,6 @@ FPSToggle:OnChanged(function(val)
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
         FPSToggle.Container.BackgroundColor3 = Color3.fromRGB(50,150,255)
     else
-        -- คืนค่า Lighting / Rendering
         Lighting.GlobalShadows = true
         Lighting.Brightness = 2
         Lighting.Ambient = Color3.fromRGB(255,255,255)
@@ -161,17 +153,15 @@ FPSToggle:OnChanged(function(val)
     end
 end)
 
--- ===== ESP Tab =====
-local NameToggle = Tabs.EPS:AddToggle("ESP_Name",{Title="Name ESP", Default=false})
-local HighlightToggle = Tabs.EPS:AddToggle("ESP_Highlight",{Title="Highlight ESP", Default=false})
-local HealthToggle = Tabs.EPS:AddToggle("ESP_Health",{Title="Health ESP", Default=false})
+local NameToggle = Tabs.ESP:AddToggle("ESP_Name",{Title="Name ESP", Default=false})
+local HighlightToggle = Tabs.ESP:AddToggle("ESP_Highlight",{Title="Highlight ESP", Default=false})
+local HealthToggle = Tabs.ESP:AddToggle("ESP_Health",{Title="Health ESP", Default=false})
 
 local function CreateESP(plr)
     if not plr.Character then return end
     local head = plr.Character:FindFirstChild("Head")
     if not head then return end
 
-    -- Name ESP
     local nameGui = Instance.new("BillboardGui")
     nameGui.Name="NameESP"; nameGui.Size=UDim2.new(4,0,4,0); nameGui.StudsOffset=Vector3.new(0,3,0)
     nameGui.Adornee=head; nameGui.AlwaysOnTop=true
@@ -183,7 +173,6 @@ local function CreateESP(plr)
 
     nameGui.Parent=plr.Character
 
-    -- Health ESP
     local healthGui = Instance.new("BillboardGui")
     healthGui.Name="HealthESP"; healthGui.Size=UDim2.new(3,0,3,0); healthGui.StudsOffset=Vector3.new(0,1.5,0)
     healthGui.Adornee=head; healthGui.AlwaysOnTop=true
@@ -193,7 +182,6 @@ local function CreateESP(plr)
     healthLabel.Font=Enum.Font.GothamBold; healthLabel.TextStrokeTransparency=0.5
     healthGui.Parent=plr.Character
 
-    -- Highlight / Hitbox
     local highlight = Instance.new("Highlight")
     highlight.FillColor = Color3.fromRGB(255,0,0)
     highlight.OutlineColor = Color3.fromRGB(255,255,255)
@@ -223,15 +211,16 @@ end
 
 task.spawn(function()
     while task.wait(2) do
-        for _,plr in ipairs(Players:GetPlayers()) do
-            if plr~=LocalPlayer and plr.Character then
-                CreateESP(plr)
+        if NameToggle.Value or HighlightToggle.Value or HealthToggle.Value then
+            for _,plr in ipairs(Players:GetPlayers()) do
+                if plr~=LocalPlayer and plr.Character then
+                    CreateESP(plr)
+                end
             end
         end
     end
 end)
 
--- ===== Save / Interface =====
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({})
 InterfaceManager:SetFolder("FluentScriptHub")
